@@ -20,94 +20,118 @@ import {
   PopoverFooter,
   Tooltip,
   HStack,
+  Input,
+  Text,
 } from '@chakra-ui/react'
 import { ExternalLinkIcon, SmallCloseIcon, CheckIcon } from '@chakra-ui/icons'
 import { DiGithubBadge } from 'react-icons/di'
 import { AiFillThunderbolt } from 'react-icons/ai'
-import { SiTypescript } from 'react-icons/si'
-import { buildParameters } from '~utils/codesandbox'
-import { generateCode } from '~utils/code'
 import useDispatch from '~hooks/useDispatch'
 import { useSelector } from 'react-redux'
 import { getComponents } from '~core/selectors/components'
 import { getShowLayout, getShowCode } from '~core/selectors/app'
 import HeaderMenu from '~components/headerMenu/HeaderMenu'
-import { FaReact } from 'react-icons/fa'
 
-const CodeSandboxButton = () => {
+const PublishButton = () => {
   const components = useSelector(getComponents)
   const [isLoading, setIsLoading] = useState(false)
+  const [appId, setAppId] = useState('')
+  const [ait, setAit] = useState('')
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<{
+    url: string
+    directUrl: string
+    release: number
+  } | null>(null)
 
-  const exportToCodeSandbox = async (isTypeScript: boolean) => {
+  const publish = async () => {
     setIsLoading(true)
-    const code = await generateCode(components)
-    setIsLoading(false)
-    const parameters = buildParameters(code, isTypeScript)
-
-    window.open(
-      `https://codesandbox.io/api/v1/sandboxes/define?parameters=${parameters}`,
-      '_blank',
-    )
+    setError('')
+    setResult(null)
+    try {
+      const res = await fetch('/api/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ components, appId, ait: ait || undefined }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || res.statusText)
+      setResult(body)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <Popover>
-      {({ onClose }) => (
-        <>
-          <PopoverTrigger>
-            <Button
-              isLoading={isLoading}
-              rightIcon={<ExternalLinkIcon path="" />}
-              variant="ghost"
-              size="xs"
-            >
-              Export code
-            </Button>
-          </PopoverTrigger>
+      <PopoverTrigger>
+        <Button
+          rightIcon={<ExternalLinkIcon path="" />}
+          variant="ghost"
+          size="xs"
+        >
+          Publish
+        </Button>
+      </PopoverTrigger>
 
-          <LightMode>
-            <PopoverContent zIndex={100} bg="white">
-              <PopoverArrow />
-              <PopoverCloseButton />
-              <PopoverHeader>Export format</PopoverHeader>
-              <PopoverBody fontSize="sm">
-                Export the code in CodeSandbox in which format ?
-              </PopoverBody>
-              <PopoverFooter display="flex" justifyContent="flex-end">
-                <Button
-                  size="sm"
-                  mr={2}
-                  variant="ghost"
-                  colorScheme="orange"
-                  rightIcon={<FaReact />}
-                  onClick={async () => {
-                    await exportToCodeSandbox(false)
-                    if (onClose) {
-                      onClose()
+      <LightMode>
+        <PopoverContent zIndex={100} bg="white" width="22rem">
+          <PopoverArrow />
+          <PopoverCloseButton />
+          <PopoverHeader>Publish application</PopoverHeader>
+          <PopoverBody fontSize="sm">
+            <Stack spacing={2}>
+              <Input
+                size="sm"
+                placeholder="app id (e.g. my-first-app)"
+                value={appId}
+                onChange={e => setAppId(e.target.value.toLowerCase())}
+              />
+              <Input
+                size="sm"
+                placeholder="AIT (optional)"
+                value={ait}
+                onChange={e => setAit(e.target.value.toLowerCase())}
+              />
+              {error && (
+                <Text color="red.500" fontSize="xs" whiteSpace="pre-wrap">
+                  {error}
+                </Text>
+              )}
+              {result && (
+                <Text fontSize="xs">
+                  Release {result.release} is running:{' '}
+                  <Link
+                    href={
+                      result.url.startsWith('http')
+                        ? result.url
+                        : result.directUrl
                     }
-                  }}
-                >
-                  JSX
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="blue"
-                  rightIcon={<SiTypescript />}
-                  onClick={async () => {
-                    await exportToCodeSandbox(true)
-                    if (onClose) {
-                      onClose()
-                    }
-                  }}
-                >
-                  TSX
-                </Button>
-              </PopoverFooter>
-            </PopoverContent>
-          </LightMode>
-        </>
-      )}
+                    isExternal
+                    color="teal.500"
+                  >
+                    open application
+                  </Link>
+                </Text>
+              )}
+            </Stack>
+          </PopoverBody>
+          <PopoverFooter display="flex" justifyContent="flex-end">
+            <Button
+              size="sm"
+              colorScheme="teal"
+              isLoading={isLoading}
+              loadingText="Building"
+              isDisabled={appId.length < 3}
+              onClick={publish}
+            >
+              Publish
+            </Button>
+          </PopoverFooter>
+        </PopoverContent>
+      </LightMode>
     </Popover>
   )
 }
@@ -203,7 +227,7 @@ const Header = () => {
           </HStack>
 
           <Stack direction="row">
-            <CodeSandboxButton />
+            <PublishButton />
             <Popover>
               {({ onClose }) => (
                 <>
