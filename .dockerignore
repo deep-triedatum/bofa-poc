@@ -1,0 +1,7 @@
+**/node_modules
+**/.next
+**/.git
+**/.shared
+**/npm-debug.log
+*.drawio
+meeting-notes*

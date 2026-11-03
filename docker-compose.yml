@@ -1,0 +1,70 @@
+# Local stand-in for the two-VM setup:
+#   vm1, vm2  each run editor + proxy + reconciler, and share one volume (/shared) like the NFS/EFS volume
+#   lb        round-robins requests across the two proxies, so a user lands on a random "VM"
+# Open http://localhost:8080
+
+x-vm: &vm
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: bofa-builder
+  init: true
+  volumes:
+    - shared:/shared
+  healthcheck:
+    test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/_proxy/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+  restart: unless-stopped
+
+x-env: &env
+  SHARED_DIR: /shared
+  BUILD_DIR: /tmp/builder-builds
+  PORT_MIN: "20000"
+  PORT_MAX: "20099"
+  PUBLIC_BASE_URL: http://localhost:8080
+  BUILDER_URL: http://127.0.0.1:3000
+  PROXY_PORT: "8080"
+  RECONCILE_INTERVAL_MS: "2000"
+  VM_TIMEOUT_MS: "10000"
+  FAILURES_BEFORE_RESTART: "2"
+  NEXT_TELEMETRY_DISABLED: "1"
+  # set to your private registry to test the .npmrc path, e.g. NPM_REGISTRY=https://artifactory.example/api/npm/npm-virtual/
+  NPM_REGISTRY: ${NPM_REGISTRY:-}
+
+services:
+  vm1:
+    <<: *vm
+    hostname: vm1
+    environment:
+      <<: *env
+      VM_NAME: vm1
+      VM_IP: vm1
+    ports:
+      - "8081:8080"   # direct access to vm1's proxy
+
+  vm2:
+    <<: *vm
+    hostname: vm2
+    environment:
+      <<: *env
+      VM_NAME: vm2
+      VM_IP: vm2
+    ports:
+      - "8082:8080"   # direct access to vm2's proxy
+
+  lb:
+    image: nginx:alpine
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      vm1:
+        condition: service_healthy
+      vm2:
+        condition: service_healthy
+
+volumes:
+  shared:

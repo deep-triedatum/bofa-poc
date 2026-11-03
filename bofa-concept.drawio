@@ -1,0 +1,157 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="m3iBLdAktdC_WCSAwRvX">
+    <mxGraphModel dx="1708" dy="755" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=14;" value="Published app URL: any VM &#8594; registry &#8594; owning VM" vertex="1">
+          <mxGeometry height="30" width="420" x="40" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="User browser" vertex="1">
+          <mxGeometry height="50" width="120" x="520" y="20" as="geometry" />
+        </mxCell>
+
+        <!-- vm1 -->
+        <mxCell id="vm1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="vm1 &#183; 172.56.7.2" vertex="1">
+          <mxGeometry height="280" width="540" x="40" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-builder" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Code-builder" vertex="1">
+          <mxGeometry height="50" width="150" x="60" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-reconciler" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Reconciler" vertex="1">
+          <mxGeometry height="50" width="150" x="60" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-proxy" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Node proxy&lt;br&gt;/apps/&amp;lt;appId&amp;gt;/*" vertex="1">
+          <mxGeometry height="60" width="150" x="60" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-a" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="A :1000" vertex="1">
+          <mxGeometry height="40" width="120" x="250" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="B :2000" vertex="1">
+          <mxGeometry height="40" width="120" x="250" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-c" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="C :3000" vertex="1">
+          <mxGeometry height="40" width="120" x="250" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="vm1-ports" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Ports&lt;br&gt;(this VM only)&lt;div&gt;1000&lt;/div&gt;&lt;div&gt;2000&lt;/div&gt;&lt;div&gt;3000&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="150" x="410" y="170" as="geometry" />
+        </mxCell>
+
+        <!-- vm2 -->
+        <mxCell id="vm2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="vm2 &#183; 172.62.0.1" vertex="1">
+          <mxGeometry height="280" width="540" x="620" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-builder" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Code-builder" vertex="1">
+          <mxGeometry height="50" width="150" x="640" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-reconciler" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Reconciler" vertex="1">
+          <mxGeometry height="50" width="150" x="640" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-proxy" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Node proxy&lt;br&gt;/apps/&amp;lt;appId&amp;gt;/*" vertex="1">
+          <mxGeometry height="60" width="150" x="640" y="320" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="B :1000" vertex="1">
+          <mxGeometry height="40" width="120" x="830" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-c" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="C :2000" vertex="1">
+          <mxGeometry height="40" width="120" x="830" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2-ports" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="Ports&lt;br&gt;(this VM only)&lt;div&gt;1000&lt;/div&gt;&lt;div&gt;2000&lt;/div&gt;&lt;div&gt;3000&lt;/div&gt;" vertex="1">
+          <mxGeometry height="200" width="150" x="990" y="170" as="geometry" />
+        </mxCell>
+
+        <!-- shared volume -->
+        <mxCell id="vol" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;dashed=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Shared volume (NAAS) &#8212; mounted by every VM, identical on each" vertex="1">
+          <mxGeometry height="300" width="1120" x="40" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-builder" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="Code-builder&lt;br&gt;(installed once)" vertex="1">
+          <mxGeometry height="70" width="160" x="70" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-apps" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffffff;strokeColor=#666666;" value="applications&lt;br&gt;apps/&amp;lt;ait&amp;gt;/&amp;lt;appId&amp;gt;/releases/&amp;lt;n&amp;gt;" vertex="1">
+          <mxGeometry height="230" width="280" x="270" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-a" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="A" vertex="1">
+          <mxGeometry height="40" width="240" x="290" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-b" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="B" vertex="1">
+          <mxGeometry height="40" width="240" x="290" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-c" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="C" vertex="1">
+          <mxGeometry height="40" width="240" x="290" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-env" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#ffffff;strokeColor=#666666;" value="Environment variables namespace&lt;br&gt;(no port values)" vertex="1">
+          <mxGeometry height="230" width="230" x="590" y="530" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-p" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="P (for A, C)" vertex="1">
+          <mxGeometry height="40" width="190" x="610" y="610" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-q" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Q (for B)" vertex="1">
+          <mxGeometry height="40" width="190" x="610" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="vol-registry" parent="1" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;" value="Registry&lt;br&gt;registry/&amp;lt;appId&amp;gt;.json&lt;br&gt;{vm, ip, port, release, status, ait}&lt;br&gt;&lt;br&gt;atomic write (temp + rename)&lt;br&gt;each VM writes only its own entries" vertex="1">
+          <mxGeometry height="230" width="270" x="860" y="530" as="geometry" />
+        </mxCell>
+
+        <!-- env -> apps -->
+        <mxCell id="e-p-a" edge="1" parent="1" source="vol-p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vol-a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p-c" edge="1" parent="1" source="vol-p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vol-c">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-q-b" edge="1" parent="1" source="vol-q" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="vol-b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- user -> any VM -->
+        <mxCell id="e-user-vm1" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="vm1" value="1. https://builder-host/apps/&amp;lt;appId&amp;gt;/">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-vm2" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" target="vm2" value="or any other VM">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- proxy reads registry -->
+        <mxCell id="e-p1-reg" edge="1" parent="1" source="vm1-proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" target="vol-registry" value="2. read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p2-reg" edge="1" parent="1" source="vm2-proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" target="vol-registry" value="read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- proxy forwards to owning VM -->
+        <mxCell id="e-p1-a" edge="1" parent="1" source="vm1-proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="vm1-b" value="3. forward ip:port">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-p1-vm2b" edge="1" parent="1" source="vm1-proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="vm2-b" value="owning VM is vm2: forward to 172.62.0.1:1000">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="135" y="150" />
+              <mxPoint x="890" y="150" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- builder writes registry -->
+        <mxCell id="e-builder-reg" edge="1" parent="1" source="vol-builder" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="vol-registry" value="publish: write entry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="150" y="505" />
+              <mxPoint x="995" y="505" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="note-mount" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;" value="every VM mounts the same shared volume" vertex="1">
+          <mxGeometry height="30" width="300" x="430" y="425" as="geometry" />
+        </mxCell>
+
+        <!-- legend -->
+        <mxCell id="legend" parent="1" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=8;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Publish flow&lt;/b&gt;&lt;br&gt;1. Click Publish; request lands on any VM&lt;br&gt;2. Project written to shared volume&lt;br&gt;3. npm install via Artifactory, build with BASE_PATH=/apps/&amp;lt;appId&amp;gt;&lt;br&gt;4. Bind a free port on this VM, start as AIT service ID, health check&lt;br&gt;5. Write registry/&amp;lt;appId&amp;gt;.json&lt;br&gt;6. Return https://builder-host/apps/&amp;lt;appId&amp;gt;/&lt;br&gt;&lt;br&gt;&lt;b&gt;Request flow&lt;/b&gt;&lt;br&gt;user &amp;#8594; any VM proxy &amp;#8594; registry lookup &amp;#8594; owning VM ip:port&lt;br&gt;&lt;br&gt;&lt;b&gt;Per VM:&lt;/b&gt; ports, running processes, proxy, reconciler&lt;br&gt;&lt;b&gt;Shared:&lt;/b&gt; builder, applications, env variables, registry&lt;br&gt;&lt;br&gt;Reconciler restarts apps of a lost VM on a healthy VM and updates the registry; the URL does not change." vertex="1">
+          <mxGeometry height="400" width="370" x="1200" y="120" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
