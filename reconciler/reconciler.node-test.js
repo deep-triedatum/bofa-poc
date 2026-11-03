@@ -193,3 +193,118 @@ test('pickAdopter is stable and spreads apps across live VMs', () => {
   )
   assert.deepEqual([...new Set(picks)].sort(), ['vm-a', 'vm-b'])
 })
+
+// an app that is really running from a release on the shared volume
+const runApp = async (appId, port, extra = {}) => {
+  const releaseDir = makeRelease('ait-1', appId, 1)
+  const pid = lifecycle.startApp({
+    releaseDir,
+    port,
+    basePath: `/apps/${appId}`,
+  })
+  pids.add(pid)
+  await lifecycle.waitHealthy('127.0.0.1', port)
+  return register(entryFor(appId, { port, pid, ...extra }))
+}
+
+const gone = async port => {
+  for (let i = 0; i < 20; i++) {
+    if (!(await lifecycle.probe('127.0.0.1', port, 300))) return true
+    await new Promise(r => setTimeout(r, 100))
+  }
+  return false
+}
+
+test('stops the process of an app a user stopped, once', async () => {
+  await runApp('stop-me', 23071, { status: 'stopped' })
+  const reconciler = createReconciler(baseConfig('vm-a'))
+
+  const first = await reconciler.tick()
+  assert.deepEqual(
+    first.filter(a => a.appId === 'stop-me'),
+    [{ appId: 'stop-me', action: 'stopped' }],
+  )
+  assert.equal(await gone(23071), true)
+  // the entry stays stopped and is not restarted
+  assert.equal((await lifecycle.readEntry(shared, 'stop-me')).status, 'stopped')
+  assert.deepEqual(
+    (await reconciler.tick()).filter(a => a.appId === 'stop-me'),
+    [],
+  )
+})
+
+test('leaves the process of a stopped app on another VM to that VM', async () => {
+  await runApp('their-stop', 23072, { status: 'stopped', vm: 'vm-other' })
+
+  await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.equal(await lifecycle.probe('127.0.0.1', 23072), true)
+})
+
+test('deletes an app a user deleted: process, releases and registry entry', async () => {
+  await runApp('delete-me', 23073, { status: 'deleting' })
+
+  const actions = await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(
+    actions.filter(a => a.appId === 'delete-me'),
+    [{ appId: 'delete-me', action: 'deleted' }],
+  )
+  assert.equal(await gone(23073), true)
+  assert.equal(await lifecycle.readEntry(shared, 'delete-me'), null)
+  assert.equal(
+    fs.existsSync(path.join(shared, 'apps', 'ait-1', 'delete-me')),
+    false,
+  )
+})
+
+test('does not delete an app that belongs to another live VM', async () => {
+  makeRelease('ait-1', 'their-delete', 1)
+  const entry = await register(
+    entryFor('their-delete', {
+      status: 'deleting',
+      vm: 'vm-live2',
+      port: 23074,
+    }),
+  )
+  await lifecycle.writeHeartbeat(shared, { vm: 'vm-live2', ip: '127.0.0.1' })
+
+  await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(await lifecycle.readEntry(shared, 'their-delete'), entry)
+})
+
+test('starts an app a user started, without counting it as a restart', async () => {
+  makeRelease('ait-1', 'start-me', 1)
+  await register(
+    entryFor('start-me', { status: 'starting', port: 23075, restarts: 0 }),
+  )
+
+  const actions = await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(
+    actions.filter(a => a.appId === 'start-me'),
+    [{ appId: 'start-me', action: 'started' }],
+  )
+  const after = await lifecycle.readEntry(shared, 'start-me')
+  assert.equal(after.status, 'running')
+  assert.equal(after.restarts, 0)
+  assert.equal(await lifecycle.probe('127.0.0.1', 23075), true)
+})
+
+test('never signals a process that is not a published app', () => {
+  assert.equal(lifecycle.isAppProcess(process.pid), false)
+  assert.equal(lifecycle.stopApp({ pid: process.pid }), false)
+  assert.equal(lifecycle.stopApp({ pid: 999999 }), false)
+})
+
+test('removeApp refuses ids that could escape the shared directory', async () => {
+  await assert.rejects(
+    lifecycle.removeApp(shared, { ait: 'ait-1', appId: '../x' }),
+    /invalid app/,
+  )
+  await assert.rejects(
+    lifecycle.removeApp(shared, { ait: '..', appId: 'abc' }),
+    /invalid app/,
+  )
+})

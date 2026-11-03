@@ -29,7 +29,9 @@ export type RegistryEntry = {
   ip: string
   port: number
   pid: number
-  status: 'running' | 'failed'
+  /** running, or what a user asked for (stopped, starting, deleting) until the owning VM has done it; failed if it cannot start */
+  status: 'running' | 'stopped' | 'starting' | 'deleting' | 'failed'
+  restarts?: number
   basePath: string
   updatedAt: string
 }

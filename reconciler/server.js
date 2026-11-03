@@ -61,7 +61,7 @@ const createReconciler = config => {
 
     const mine = entry.vm === config.vmName
     if (mine) {
-      lifecycle.stopProcess(entry.pid)
+      lifecycle.stopApp(entry)
       await new Promise(r => setTimeout(r, 300))
     }
 
@@ -100,9 +100,13 @@ const createReconciler = config => {
       port,
       pid,
       status: 'running',
-      restarts: (entry.restarts || 0) + 1,
+      restarts:
+        entry.status === 'running'
+          ? (entry.restarts || 0) + 1
+          : entry.restarts || 0,
       updatedAt: new Date().toISOString(),
     })
+    if (entry.status === 'starting') return 'started'
     return mine ? 'restarted' : 'adopted'
   }
 
@@ -126,9 +130,47 @@ const createReconciler = config => {
 
     for (const entry of registry) {
       const { appId } = entry
+      const mine = entry.vm === config.vmName
+      // this VM acts for its own apps, and for apps of a VM that is gone if it is the elected adopter
+      const responsible =
+        mine ||
+        (!live.has(entry.vm) && pickAdopter(appId, live) === config.vmName)
+
+      // states a user asked for from the builder, which cannot reach processes on other VMs
+      if (entry.status === 'stopped') {
+        if (mine && lifecycle.stopApp(entry)) {
+          actions.push({ appId, action: 'stopped' })
+        }
+        continue
+      }
+      if (entry.status === 'deleting') {
+        if (!responsible) continue
+        if (mine) lifecycle.stopApp(entry)
+        await lifecycle.removeApp(config.sharedDir, entry)
+        actions.push({ appId, action: 'deleted' })
+        continue
+      }
+      if (entry.status === 'starting') {
+        if (!responsible) continue
+        let action
+        try {
+          action = await start(entry, registry)
+        } catch (e) {
+          action = `error: ${e.message}`
+        }
+        if (action === 'start-failed') {
+          await lifecycle.writeRegistry(config.sharedDir, {
+            ...entry,
+            status: 'failed',
+            updatedAt: new Date().toISOString(),
+          })
+        }
+        actions.push({ appId, action })
+        continue
+      }
+
       if (entry.status !== 'running') continue
 
-      const mine = entry.vm === config.vmName
       const healthy = await lifecycle.probe(
         mine ? '127.0.0.1' : entry.ip,
         entry.port,

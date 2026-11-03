@@ -12,12 +12,15 @@ Every `RECONCILE_INTERVAL_MS` (default 5 s) a tick:
 2. **Health checks:** requests `GET /healthz` on every registry entry whose `status` is `running`. Entries on this VM are checked on `127.0.0.1`, entries on other VMs on their registered `ip`.
 3. **Decides what to do** for each unhealthy app (below).
 
-Healthy apps are left alone.
+Healthy apps are left alone. Apps a user stopped, started or deleted from the editor are handled first; see `apps-manager.md`.
 
 ## Decisions for an unhealthy app
 
 | Situation | Action |
 |---|---|
+| Status `stopped` (a user stopped it) and its process is still alive on this VM | Stop the process: `stopped`. A stopped app is never restarted |
+| Status `deleting` and this VM owns it (or is the adopter of a lost VM) | Stop the process, delete its releases and registry entry: `deleted` |
+| Status `starting` and this VM owns it (or is the adopter of a lost VM) | Start it from its release: `started`. If it never answers the status becomes `failed` |
 | App is on another VM that has a fresh heartbeat | `skipped`. That VM's own reconciler handles it |
 | Fewer than `FAILURES_BEFORE_RESTART` failed checks in a row (default 2) | `suspect`. One slow answer does not restart an app |
 | App is on this VM | Restart it here: `restarted` |
@@ -38,7 +41,7 @@ If two VMs briefly disagree (for example their clocks differ at the edge of the 
 ## Restarting an app
 
 1. Find the release directory `<shared>/apps/<ait>/<appId>/releases/<release>/` from the entry.
-2. For an app on this VM, stop the old process first, then wait briefly for the port.
+2. For an app on this VM, stop the old process first (only if its pid really is a `node server.js`), then wait briefly for the port.
 3. Pick a port. A restart on the same VM tries the old port first, so the registry usually does not change at all except for the pid. An adoption takes the first free port in `PORT_MIN` to `PORT_MAX`, skipping ports claimed by other entries for this VM.
 4. Start `node server.js` there with `PORT` and `BASE_PATH`, and wait for `/healthz`.
 5. Write the registry entry atomically with the new `vm`, `ip`, `port`, `pid`, `updatedAt` and an incremented `restarts` counter.
@@ -68,7 +71,7 @@ Run it under the VM's process manager (systemd, for example) so it restarts on f
 
 ## Verified
 
-- `npm run reconciler:test` runs 8 tests against real stand-in servers and a temporary shared directory:
+- `npm run reconciler:test` runs 15 tests (the first 8 below; the user-requested stop, start and delete are listed in `apps-manager.md`) against real stand-in servers and a temporary shared directory:
   - a healthy app is left alone;
   - a dead app is restarted on the same port with `restarts` incremented;
   - the failure threshold is respected (`suspect`, then `restarted`);

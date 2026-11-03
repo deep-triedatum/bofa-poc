@@ -31,6 +31,7 @@ import { useSelector } from 'react-redux'
 import { getComponents } from '~core/selectors/components'
 import { getShowLayout, getShowCode } from '~core/selectors/app'
 import HeaderMenu from '~components/headerMenu/HeaderMenu'
+import AppsPanel from '~components/AppsPanel'
 
 const PublishButton = () => {
   const components = useSelector(getComponents)
@@ -228,6 +229,7 @@ const Header = () => {
 
           <Stack direction="row">
             <PublishButton />
+            <AppsPanel />
             <Popover>
               {({ onClose }) => (
                 <>

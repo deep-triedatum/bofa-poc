@@ -91,6 +91,46 @@ const stopProcess = pid => {
   } catch {}
 }
 
+const ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,39}$/
+
+/**
+ * True when `pid` is a published app's `node server.js`. A pid from the registry may have been
+ * recycled by an unrelated process, so anything that stops an app by pid checks this first.
+ * Without /proc (not Linux) there is nothing to check against, so the registry is trusted.
+ */
+const isAppProcess = pid => {
+  if (!pid || !fs.existsSync('/proc/self')) return Boolean(pid)
+  try {
+    const [bin, script] = fs
+      .readFileSync(`/proc/${pid}/cmdline`, 'utf8')
+      .split('\0')
+    return path.basename(bin) === 'node' && script === 'server.js'
+  } catch {
+    return false
+  }
+}
+
+/** Stops the app process of a registry entry that runs on this VM. Returns true if a process was signalled. */
+const stopApp = entry => {
+  if (!entry || !isAppProcess(entry.pid)) return false
+  stopProcess(entry.pid)
+  return true
+}
+
+/** Deletes an app's releases and its registry entry. The caller stops the process first. */
+const removeApp = async (sharedDir, { ait, appId }) => {
+  if (!ID_PATTERN.test(ait) || !ID_PATTERN.test(appId)) {
+    throw new Error(`refusing to remove invalid app ${ait}/${appId}`)
+  }
+  await fsp.rm(path.join(sharedDir, 'apps', ait, appId), {
+    recursive: true,
+    force: true,
+  })
+  await fsp.rm(path.join(registryDir(sharedDir), `${appId}.json`), {
+    force: true,
+  })
+}
+
 const readEntry = async (sharedDir, appId) => {
   try {
     return JSON.parse(
@@ -155,6 +195,9 @@ module.exports = {
   waitHealthy,
   startApp,
   stopProcess,
+  isAppProcess,
+  stopApp,
+  removeApp,
   readEntry,
   readRegistry,
   writeRegistry,
