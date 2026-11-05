@@ -12,6 +12,8 @@ The **My apps** button in the editor's header opens a list of published applicat
 
 The filter box shows only one AIT's apps. Empty shows all.
 
+The **Env** button on each row and the **Environment** tab manage the app's environment variables; see `env-vars.md`.
+
 **There is no login yet, so "your apps" means "the apps of an AIT".** Anyone who can open the editor can stop or delete any app. Per-user ownership needs the OAuth work from version 2 of the notes.
 
 ## How it works

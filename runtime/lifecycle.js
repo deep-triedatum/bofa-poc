@@ -72,11 +72,12 @@ const waitHealthy = async (host, port, timeoutMs = 15000) => {
 }
 
 /** Starts `node server.js` from a release directory, detached. Returns the pid. */
-const startApp = ({ releaseDir, port, basePath }) => {
+/** `env` are the app's own variables (see env.js). PORT and BASE_PATH always win over them. */
+const startApp = ({ releaseDir, port, basePath, env = {} }) => {
   const logFd = fs.openSync(path.join(releaseDir, 'app.log'), 'a')
   const child = spawn('node', ['server.js'], {
     cwd: releaseDir,
-    env: { ...process.env, PORT: String(port), BASE_PATH: basePath },
+    env: { ...process.env, ...env, PORT: String(port), BASE_PATH: basePath },
     detached: true,
     stdio: ['ignore', logFd, logFd],
   })
@@ -129,6 +130,9 @@ const removeApp = async (sharedDir, { ait, appId }) => {
   await fsp.rm(path.join(registryDir(sharedDir), `${appId}.json`), {
     force: true,
   })
+  await fsp.rm(path.join(sharedDir, 'env', 'apps', `${appId}.json`), {
+    force: true,
+  })
 }
 
 const readEntry = async (sharedDir, appId) => {
@@ -155,10 +159,10 @@ const readRegistry = async sharedDir => {
 }
 
 // temp file + rename is atomic on the same filesystem, so readers never see half a file
-const writeAtomic = async (file, data) => {
+const writeAtomic = async (file, data, { mode } = {}) => {
   await fsp.mkdir(path.dirname(file), { recursive: true })
   const tmp = `${file}.${process.pid}.tmp`
-  await fsp.writeFile(tmp, JSON.stringify(data, null, 2))
+  await fsp.writeFile(tmp, JSON.stringify(data, null, 2), { mode })
   await fsp.rename(tmp, file)
 }
 
@@ -200,6 +204,7 @@ module.exports = {
   removeApp,
   readEntry,
   readRegistry,
+  writeAtomic,
   writeRegistry,
   writeHeartbeat,
   readHeartbeats,

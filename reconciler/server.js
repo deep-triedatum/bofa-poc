@@ -13,6 +13,7 @@ const os = require('node:os')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const lifecycle = require('../runtime/lifecycle')
+const envStore = require('../runtime/env')
 
 const loadConfig = (env = process.env) => ({
   sharedDir: env.SHARED_DIR || path.resolve('.shared'),
@@ -48,7 +49,8 @@ const createReconciler = config => {
     a && b && a.vm === b.vm && a.pid === b.pid && a.updatedAt === b.updatedAt
 
   // Starts an app from its shared release on this VM and points the registry at it.
-  const start = async (entry, registry) => {
+  // `envChange`: the app is healthy and is only being restarted to pick up new variables
+  const start = async (entry, registry, { envChange = false } = {}) => {
     const releaseDir = lifecycle.releaseDirOf(config.sharedDir, entry)
     if (!fs.existsSync(path.join(releaseDir, 'server.js'))) {
       await lifecycle.writeRegistry(config.sharedDir, {
@@ -73,10 +75,12 @@ const createReconciler = config => {
       claimed,
       mine ? entry.port : undefined,
     )
+    const env = await envStore.resolveEnv(config.sharedDir, entry)
     const pid = lifecycle.startApp({
       releaseDir,
       port,
       basePath: entry.basePath,
+      env: env.vars,
     })
 
     try {
@@ -100,12 +104,14 @@ const createReconciler = config => {
       port,
       pid,
       status: 'running',
+      envHash: env.hash,
       restarts:
-        entry.status === 'running'
+        entry.status === 'running' && !envChange
           ? (entry.restarts || 0) + 1
           : entry.restarts || 0,
       updatedAt: new Date().toISOString(),
     })
+    if (envChange) return 'env-updated'
     if (entry.status === 'starting') return 'started'
     return mine ? 'restarted' : 'adopted'
   }
@@ -177,6 +183,19 @@ const createReconciler = config => {
       )
       if (healthy) {
         failures.delete(appId)
+        // variables changed since this process started: restart it with the new ones
+        if (mine) {
+          const { hash } = await envStore.resolveEnv(config.sharedDir, entry)
+          if ((entry.envHash || '') !== hash) {
+            let action
+            try {
+              action = await start(entry, registry, { envChange: true })
+            } catch (e) {
+              action = `error: ${e.message}`
+            }
+            actions.push({ appId, action })
+          }
+        }
         continue
       }
 

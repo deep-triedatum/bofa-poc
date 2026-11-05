@@ -12,7 +12,12 @@ import {
   ModalContent,
   ModalHeader,
   ModalOverlay,
+  Tab,
   Table,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   Tbody,
   Td,
   Text,
@@ -21,6 +26,8 @@ import {
   Tr,
   useDisclosure,
 } from '@chakra-ui/react'
+import AppEnvEditor from './apps/AppEnvEditor'
+import EnvTab from './apps/EnvTab'
 
 const STATUS_COLOR: Record<string, string> = {
   running: 'green',
@@ -52,6 +59,9 @@ const AppsPanel = () => {
   const [ait, setAit] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
+  const [tab, setTab] = useState(0)
+  // the app whose environment is being edited, instead of the table
+  const [envApp, setEnvApp] = useState<AppInfo | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -69,11 +79,11 @@ const AppsPanel = () => {
 
   // refresh while the panel is open: apps change state on their own VM, a few seconds after a click
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || envApp) return
     load()
     const timer = setInterval(load, 3000)
     return () => clearInterval(timer)
-  }, [isOpen, load])
+  }, [isOpen, envApp, load])
 
   const act = async (app: AppInfo, action: Action) => {
     if (
@@ -135,112 +145,155 @@ const AppsPanel = () => {
                 </Text>
               </HStack>
 
-              {error && (
-                <Text
-                  color="red.500"
-                  fontSize="sm"
-                  mb={2}
-                  whiteSpace="pre-wrap"
-                >
-                  {error}
-                </Text>
-              )}
+              <Tabs index={tab} onChange={setTab} size="sm" isLazy>
+                <TabList mb={3}>
+                  <Tab>Applications</Tab>
+                  <Tab>Environment</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel px={0}>
+                    {envApp ? (
+                      <AppEnvEditor
+                        appId={envApp.appId}
+                        ait={envApp.ait}
+                        onBack={() => setEnvApp(null)}
+                      />
+                    ) : (
+                      <>
+                        {error && (
+                          <Text
+                            color="red.500"
+                            fontSize="sm"
+                            mb={2}
+                            whiteSpace="pre-wrap"
+                          >
+                            {error}
+                          </Text>
+                        )}
 
-              {apps.length === 0 && !error ? (
-                <Text fontSize="sm" color="gray.500">
-                  No published applications{ait ? ` for AIT "${ait}"` : ''} yet.
-                  Use Publish to create one.
-                </Text>
-              ) : (
-                <Table size="sm">
-                  <Thead>
-                    <Tr>
-                      <Th>App</Th>
-                      <Th>AIT</Th>
-                      <Th>Status</Th>
-                      <Th>Runs on</Th>
-                      <Th isNumeric>Release</Th>
-                      <Th isNumeric>Restarts</Th>
-                      <Th>Actions</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {apps.map(app => {
-                      const disabled = busy === app.appId
-                      const open = app.url.startsWith('http')
-                        ? app.url
-                        : app.directUrl
-                      return (
-                        <Tr key={app.appId}>
-                          <Td>
-                            {app.status === 'running' && app.healthy ? (
-                              <Link href={open} isExternal color="teal.600">
-                                {app.appId}
-                              </Link>
-                            ) : (
-                              app.appId
-                            )}
-                          </Td>
-                          <Td>{app.ait}</Td>
-                          <Td>
-                            <Badge colorScheme={STATUS_COLOR[app.status]}>
-                              {app.status}
-                            </Badge>
-                            {app.status === 'running' && !app.healthy && (
-                              <Badge ml={1} colorScheme="orange">
-                                not answering
-                              </Badge>
-                            )}
-                          </Td>
-                          <Td fontSize="xs">
-                            {app.vm} :{app.port}
-                          </Td>
-                          <Td isNumeric>{app.release}</Td>
-                          <Td isNumeric>{app.restarts || 0}</Td>
-                          <Td>
-                            <HStack spacing={1}>
-                              {app.status === 'running' ||
-                              app.status === 'starting' ? (
-                                <Button
-                                  size="xs"
-                                  isDisabled={
-                                    disabled || app.status === 'starting'
-                                  }
-                                  onClick={() => act(app, 'stop')}
-                                >
-                                  Stop
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="xs"
-                                  colorScheme="teal"
-                                  isDisabled={
-                                    disabled || app.status === 'deleting'
-                                  }
-                                  onClick={() => act(app, 'start')}
-                                >
-                                  Start
-                                </Button>
-                              )}
-                              <Button
-                                size="xs"
-                                colorScheme="red"
-                                variant="outline"
-                                isDisabled={
-                                  disabled || app.status === 'deleting'
-                                }
-                                onClick={() => act(app, 'delete')}
-                              >
-                                Delete
-                              </Button>
-                            </HStack>
-                          </Td>
-                        </Tr>
-                      )
-                    })}
-                  </Tbody>
-                </Table>
-              )}
+                        {apps.length === 0 && !error ? (
+                          <Text fontSize="sm" color="gray.500">
+                            No published applications
+                            {ait ? ` for AIT "${ait}"` : ''} yet. Use Publish to
+                            create one.
+                          </Text>
+                        ) : (
+                          <Table size="sm">
+                            <Thead>
+                              <Tr>
+                                <Th>App</Th>
+                                <Th>AIT</Th>
+                                <Th>Status</Th>
+                                <Th>Runs on</Th>
+                                <Th isNumeric>Release</Th>
+                                <Th isNumeric>Restarts</Th>
+                                <Th>Actions</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {apps.map(app => {
+                                const disabled = busy === app.appId
+                                const open = app.url.startsWith('http')
+                                  ? app.url
+                                  : app.directUrl
+                                return (
+                                  <Tr key={app.appId}>
+                                    <Td>
+                                      {app.status === 'running' &&
+                                      app.healthy ? (
+                                        <Link
+                                          href={open}
+                                          isExternal
+                                          color="teal.600"
+                                        >
+                                          {app.appId}
+                                        </Link>
+                                      ) : (
+                                        app.appId
+                                      )}
+                                    </Td>
+                                    <Td>{app.ait}</Td>
+                                    <Td>
+                                      <Badge
+                                        colorScheme={STATUS_COLOR[app.status]}
+                                      >
+                                        {app.status}
+                                      </Badge>
+                                      {app.status === 'running' &&
+                                        !app.healthy && (
+                                          <Badge ml={1} colorScheme="orange">
+                                            not answering
+                                          </Badge>
+                                        )}
+                                    </Td>
+                                    <Td fontSize="xs">
+                                      {app.vm} :{app.port}
+                                    </Td>
+                                    <Td isNumeric>{app.release}</Td>
+                                    <Td isNumeric>{app.restarts || 0}</Td>
+                                    <Td>
+                                      <HStack spacing={1}>
+                                        <Button
+                                          size="xs"
+                                          variant="outline"
+                                          isDisabled={app.status === 'deleting'}
+                                          onClick={() => setEnvApp(app)}
+                                        >
+                                          Env
+                                        </Button>
+                                        {app.status === 'running' ||
+                                        app.status === 'starting' ? (
+                                          <Button
+                                            size="xs"
+                                            isDisabled={
+                                              disabled ||
+                                              app.status === 'starting'
+                                            }
+                                            onClick={() => act(app, 'stop')}
+                                          >
+                                            Stop
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            size="xs"
+                                            colorScheme="teal"
+                                            isDisabled={
+                                              disabled ||
+                                              app.status === 'deleting'
+                                            }
+                                            onClick={() => act(app, 'start')}
+                                          >
+                                            Start
+                                          </Button>
+                                        )}
+                                        <Button
+                                          size="xs"
+                                          colorScheme="red"
+                                          variant="outline"
+                                          isDisabled={
+                                            disabled ||
+                                            app.status === 'deleting'
+                                          }
+                                          onClick={() => act(app, 'delete')}
+                                        >
+                                          Delete
+                                        </Button>
+                                      </HStack>
+                                    </Td>
+                                  </Tr>
+                                )
+                              })}
+                            </Tbody>
+                          </Table>
+                        )}
+                      </>
+                    )}
+                  </TabPanel>
+                  <TabPanel px={0}>
+                    <EnvTab ait={ait} active={isOpen && tab === 1} />
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
             </ModalBody>
           </ModalContent>
         </LightMode>

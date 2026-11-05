@@ -51,7 +51,8 @@
     "proxy": "node proxy/server.js",
     "proxy:test": "node --test proxy/proxy.node-test.js",
     "reconciler": "node reconciler/server.js",
-    "reconciler:test": "node --test reconciler/reconciler.node-test.js"
+    "reconciler:test": "node --test reconciler/reconciler.node-test.js",
+    "env:test": "node --test runtime/env.node-test.js"
   },
   "browserslist": {
     "production": [

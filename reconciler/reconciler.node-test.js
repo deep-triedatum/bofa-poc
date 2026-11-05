@@ -308,3 +308,94 @@ test('removeApp refuses ids that could escape the shared directory', async () =>
     /invalid app/,
   )
 })
+
+// ---- environment variables (runtime/env.js) ----
+
+const envStore = require('../runtime/env')
+
+const ENV_SERVER = `const http = require('node:http')
+http.createServer((req, res) => {
+  res.setHeader('content-type', 'application/json')
+  res.end(JSON.stringify({ foo: process.env.FOO, port: process.env.PORT, base: process.env.BASE_PATH }))
+}).listen(Number(process.env.PORT))
+`
+const makeEnvRelease = (ait, appId) => {
+  const dir = makeRelease(ait, appId, 1)
+  fs.writeFileSync(path.join(dir, 'server.js'), ENV_SERVER)
+  return dir
+}
+const askEnv = async port => (await fetch(`http://127.0.0.1:${port}/`)).json()
+
+test('a restarted app gets its namespace variables, and PORT and BASE_PATH stay the platform\'s', async () => {
+  makeEnvRelease('ait-1', 'env-app')
+  await envStore.updateNamespace(shared, 'env-ns-one', { ait: 'ait-1', set: { FOO: 'bar' } })
+  await register(entryFor('env-app', { port: 23041, envNamespaces: ['env-ns-one'] }))
+
+  await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(await askEnv(23041), { foo: 'bar', port: '23041', base: '/apps/env-app' })
+  const entry = await lifecycle.readEntry(shared, 'env-app')
+  assert.equal(entry.envHash, (await envStore.resolveEnv(shared, entry)).hash)
+  assert.notEqual(entry.envHash, '')
+})
+
+test('changing a namespace restarts the healthy apps that use it, without counting a restart', async () => {
+  const names = ['env-share-a', 'env-share-b']
+  const mine = actions => actions.filter(a => names.includes(a.appId))
+  await envStore.updateNamespace(shared, 'env-ns-two', { ait: 'ait-1', set: { FOO: 'v1' } })
+  for (const [i, appId] of names.entries()) {
+    makeEnvRelease('ait-1', appId)
+    await register(entryFor(appId, { port: 23042 + i, envNamespaces: ['env-ns-two'] }))
+  }
+  const reconciler = createReconciler(baseConfig('vm-a'))
+  await reconciler.tick()
+  assert.equal((await askEnv(23042)).foo, 'v1')
+  assert.equal((await askEnv(23043)).foo, 'v1')
+  assert.deepEqual(mine(await reconciler.tick()), [], 'nothing to do while nothing changes')
+
+  const restartsBefore = {}
+  for (const appId of names) {
+    restartsBefore[appId] = (await lifecycle.readEntry(shared, appId)).restarts || 0
+  }
+  await envStore.updateNamespace(shared, 'env-ns-two', { set: { FOO: 'v2' } })
+  const actions = await reconciler.tick()
+
+  assert.deepEqual(
+    actions.filter(a => names.includes(a.appId)).map(a => a.action),
+    ['env-updated', 'env-updated'],
+  )
+  assert.equal((await askEnv(23042)).foo, 'v2')
+  assert.equal((await askEnv(23043)).foo, 'v2')
+  for (const appId of names) {
+    assert.equal((await lifecycle.readEntry(shared, appId)).restarts || 0, restartsBefore[appId])
+  }
+  assert.deepEqual(mine(await reconciler.tick()), [], 'settled again')
+})
+
+test('an app on another live VM is left to that VM when its variables change', async () => {
+  makeEnvRelease('ait-1', 'env-remote')
+  const releaseDir = path.join(shared, 'apps', 'ait-1', 'env-remote', 'releases', '1')
+  const pid = lifecycle.startApp({ releaseDir, port: 23044, basePath: '/apps/env-remote' })
+  pids.add(pid)
+  await lifecycle.waitHealthy('127.0.0.1', 23044)
+  await register(entryFor('env-remote', { vm: 'vm-b', port: 23044, pid, envHash: '' }))
+  await envStore.updateAppVars(shared, { appId: 'env-remote', ait: 'ait-1' }, { set: { FOO: 'x' } })
+  await lifecycle.writeHeartbeat(shared, { vm: 'vm-b', ip: '127.0.0.1' })
+
+  const actions = await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(actions.filter(a => a.appId === 'env-remote'), [])
+  assert.equal((await lifecycle.readEntry(shared, 'env-remote')).pid, pid)
+})
+
+test('an app from before this feature (no envHash, no variables) is not restarted', async () => {
+  const releaseDir = makeRelease('ait-1', 'old-app', 1)
+  const pid = lifecycle.startApp({ releaseDir, port: 23045, basePath: '/apps/old-app' })
+  pids.add(pid)
+  await lifecycle.waitHealthy('127.0.0.1', 23045)
+  await register(entryFor('old-app', { port: 23045, pid }))
+
+  const actions = await createReconciler(baseConfig('vm-a')).tick()
+
+  assert.deepEqual(actions.filter(a => a.appId === 'old-app'), [])
+})

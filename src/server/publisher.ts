@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { generateProject } from '~utils/project'
 import lifecycle from '../../runtime/lifecycle'
+import envStore from '../../runtime/env'
 
 const run = promisify(execFile)
 
@@ -32,6 +33,10 @@ export type RegistryEntry = {
   /** running, or what a user asked for (stopped, starting, deleting) until the owning VM has done it; failed if it cannot start */
   status: 'running' | 'stopped' | 'starting' | 'deleting' | 'failed'
   restarts?: number
+  /** Environment namespaces attached to the app, in order; later ones win */
+  envNamespaces?: string[]
+  /** Changes whenever the app's variables do, so the owning VM knows to restart it. No values in it */
+  envHash?: string
   basePath: string
   updatedAt: string
 }
@@ -81,7 +86,13 @@ const writeFiles = async (dir: string, files: Record<string, string>) => {
 
 export const publish = async (
   components: IComponents,
-  options: { appId: string; ait: string; name?: string },
+  options: {
+    appId: string
+    ait: string
+    name?: string
+    /** Defaults to what the previous release had */
+    envNamespaces?: string[]
+  },
   config = loadConfig(),
 ): Promise<PublishResult> => {
   const { appId, ait } = options
@@ -97,6 +108,22 @@ export const publish = async (
   inFlight.add(appId)
 
   try {
+    // fail before the slow build if a namespace is missing or belongs to another AIT
+    const earlier: RegistryEntry | null = await lifecycle.readEntry(
+      config.sharedDir,
+      appId,
+    )
+    const envNamespaces = options.envNamespaces || earlier?.envNamespaces || []
+    try {
+      await envStore.assertAttachable(config.sharedDir, {
+        appId,
+        ait,
+        envNamespaces,
+      })
+    } catch (e) {
+      throw new PublishError((e as Error).message, (e as PublishError).status || 400)
+    }
+
     const basePath = `/apps/${appId}`
     const appDir = path.join(config.sharedDir, 'apps', ait, appId)
     const release = await nextRelease(appDir)
@@ -152,7 +179,17 @@ export const publish = async (
       throw new PublishError((e as Error).message + ` on ${config.vmName}`, 503)
     }
 
-    const pid: number = lifecycle.startApp({ releaseDir, port, basePath })
+    const env = await envStore.resolveEnv(config.sharedDir, {
+      appId,
+      ait,
+      envNamespaces,
+    })
+    const pid: number = lifecycle.startApp({
+      releaseDir,
+      port,
+      basePath,
+      env: env.vars,
+    })
     try {
       await lifecycle.waitHealthy('127.0.0.1', port)
     } catch (e) {
@@ -171,6 +208,8 @@ export const publish = async (
       port,
       pid,
       status: 'running',
+      envNamespaces,
+      envHash: env.hash,
       basePath,
       updatedAt: new Date().toISOString(),
     }
