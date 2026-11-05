@@ -1,0 +1,22 @@
+# Verdaccio for the builder VMs. Install path: /etc/verdaccio/config.yaml
+storage: /var/lib/verdaccio/storage
+# the default is localhost only; the other VMs must reach it
+listen: 0.0.0.0:4873
+max_body_size: 100mb
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/   # or your corporate mirror
+    cache: true
+
+packages:
+  '@*/*':                # scoped packages: @chakra-ui/*, @emotion/*
+    access: $all
+    publish: $authenticated
+    proxy: npmjs
+  '**':
+    access: $all
+    publish: $authenticated
+    proxy: npmjs
+
+log: { type: stdout, format: pretty, level: http }

@@ -1,2 +1,3 @@
 builder/
 *:Zone.Identifier
+vm/ec2/dist/

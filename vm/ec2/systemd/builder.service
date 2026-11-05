@@ -1,0 +1,22 @@
+[Unit]
+Description=Builder editor (Next.js)
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/shared
+
+[Service]
+User=builder
+Group=builder
+WorkingDirectory=/opt/builder/current
+EnvironmentFile=/etc/builder/builder.env
+Environment=NODE_ENV=production
+# only the proxy on :8080 is reachable from outside; it forwards the editor to this port
+ExecStart=/opt/builder/current/node_modules/.bin/next start -p 3000 -H 127.0.0.1
+Restart=always
+RestartSec=2
+LimitNOFILE=65536
+# published apps are started by this process and must survive a restart of it
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
