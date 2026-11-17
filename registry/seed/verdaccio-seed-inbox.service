@@ -1,0 +1,13 @@
+# /etc/systemd/system/verdaccio-seed-inbox.service
+[Unit]
+Description=Load missing npm packages into the registry (files from the seed inbox)
+After=network-online.target verdaccio.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=verdaccio-seed
+Group=verdaccio-seed
+Environment=HOME=/var/lib/verdaccio-seed
+ExecStart=/opt/verdaccio-seed/seed-registry.sh --inbox
+TimeoutStartSec=30min

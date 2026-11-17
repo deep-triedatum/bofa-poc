@@ -1,0 +1,16 @@
+[Unit]
+Description=Verdaccio npm registry
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=verdaccio
+Group=verdaccio
+WorkingDirectory=/var/lib/verdaccio
+Environment=PATH=/opt/verdaccio/node/bin:/usr/bin:/bin
+ExecStart=/opt/verdaccio/bin/verdaccio --config /etc/verdaccio/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

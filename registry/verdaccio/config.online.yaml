@@ -1,0 +1,48 @@
+storage: /var/lib/verdaccio/storage
+
+listen:
+  - 0.0.0.0:4873               # native default is localhost only; other VMs need this
+
+max_body_size: 100mb
+
+web:
+  title: Lab Registry (EC2)
+
+auth:
+  htpasswd:
+    file: /var/lib/verdaccio/htpasswd
+    max_users: -1
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+    timeout: 30s
+    max_fails: 3
+    fail_timeout: 1m
+    maxage: 2m
+
+packages:
+  '@lab/*':                    # internal scope: never proxied to npmjs
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+  '@*/*':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+    proxy: npmjs
+
+server:
+  keepAliveTimeout: 60
+middlewares:
+  audit:
+    enabled: true
+log:
+  type: stdout
+  format: pretty
+  level: http

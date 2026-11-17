@@ -1,0 +1,3 @@
+# Versions that must never be loaded into the registry.
+# One per line: <package name> <semver range>. No range = every version.
+lodash <4.17.21

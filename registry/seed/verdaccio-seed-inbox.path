@@ -1,0 +1,10 @@
+# /etc/systemd/system/verdaccio-seed-inbox.path
+[Unit]
+Description=Watch the seed inbox for package.json / package-lock.json files
+
+[Path]
+PathExistsGlob=/var/lib/verdaccio-seed/inbox/*.json
+Unit=verdaccio-seed-inbox.service
+
+[Install]
+WantedBy=multi-user.target

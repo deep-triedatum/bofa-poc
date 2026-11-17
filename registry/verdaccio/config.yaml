@@ -1,0 +1,40 @@
+storage: /var/lib/verdaccio/storage
+
+listen:
+  - 0.0.0.0:4873               # native default is localhost only; other VMs need this
+
+max_body_size: 100mb           # seed uploads are base64 (~1.35x); natives ~9 MB
+
+web:
+  title: Lab Registry (EC2, offline)
+
+auth:
+  htpasswd:
+    file: /var/lib/verdaccio/htpasswd
+    max_users: -1
+
+# No uplinks: offline registry. Packages are loaded by the seed tool only.
+
+packages:
+  '@lab/*':                    # internal scope
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+  '@*/*':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+  '**':
+    access: $all
+    publish: $authenticated
+    unpublish: $authenticated
+
+server:
+  keepAliveTimeout: 60
+middlewares:
+  audit:
+    enabled: false             # nothing to forward npm audit to
+log:
+  type: stdout
+  format: pretty
+  level: http
