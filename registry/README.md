@@ -1,7 +1,7 @@
 # Private npm registry
 
 **What:** the package registry the builder installs npm packages from when it publishes an app.
-**Owner:** registry owner. **For:** the builder owner, and anyone (or any AI assistant) who runs, changes or rebuilds the registry.
+**Owner:** registry owner. **For:** the builder owner, and anyone who runs, changes or rebuilds the registry.
 **Status (2026-11-16):** running on host 1, **offline** (no link to npmjs). Packages are loaded beforehand by the seed tool. Publishes verified on both VMs.
 **Why things are the way they are:** [DECISIONS.md](DECISIONS.md).
 
@@ -16,12 +16,10 @@ Secrets are **not** in this repo: `htpasswd`, the seed tool's token file and `.v
 
 ---
 
-## 0. Read first: rules (people and AI assistants)
+## 0. Read first: rules
 
 | Rule | Why |
 |---|---|
-| **People run every command by hand.** An AI assistant may explain commands and read outputs, but **must not run** anything on the hosts, through SSM, or with the AWS CLI | Shared company AWS account; we agreed to work manually |
-| **Never touch the `a-td…` (large) instance**: no stop, restart, change or use | It belongs to other work and must stay running |
 | **Never use the EFS mount** for registry work, and never write to release folders | Shared with other work; release files belong to the builder |
 | **No AWS changes** (security groups, instances, IAM, EFS) without asking the registry owner first | Nothing in this setup needed one |
 | **Don't change the `verdaccio` service**, `/etc/verdaccio/` or `/var/lib/verdaccio/` on host 1 without telling the registry owner | Every config change restarts the registry (~3 s), which fails publishes running at that moment |
@@ -128,13 +126,13 @@ sudo cat /proc/$PID/environ | tr '\0' '\n' | grep -i '^npm'
 # expect NPM_REGISTRY=... and NPM_CONFIG_UPDATE_NOTIFIER=false, and NOT NPM_CONFIG_REGISTRY
 ```
 
-**Check a publish used it** (read-only: `grep` only reads the release):
+**Check a publish used it** (builder owner: the release is on the EFS mount, which registry work never touches; `grep` only reads it):
 ```bash
 REL=/mnt/shared/apps/<ait>/<appId>/releases/<n>
 grep -c '"resolved": "http://172.31.47.239:4873/' "$REL/package-lock.json"     # > 0
 grep -c '"resolved": "https://registry.npmjs.org/' "$REL/package-lock.json"    # 0
 ```
-Or, without touching the release: count the VM's requests in the registry log on host 1 during the publish (section 10).
+Registry owner, without touching the release: count the VM's requests in the registry log on host 1 during the publish (section 10).
 
 ---
 

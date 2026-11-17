@@ -20,11 +20,11 @@ Only this tool talks to the public registry. The registry service itself stays o
 |---|---|---|
 | `seed-registry.sh` | `/opt/verdaccio-seed/` | Main script |
 | `seed-plan.js` | `/opt/verdaccio-seed/` | Helper: plan, verify, publish |
-| `seed.env` | `/etc/verdaccio-seed/` | Settings (replace `REGISTRY_HOST`) |
+| `seed.env` | `/etc/verdaccio-seed/` | Settings as installed on host 1 |
 | `blocklist.txt` | `/etc/verdaccio-seed/` | Versions never loaded |
 | `verdaccio-seed-inbox.path` | `/etc/systemd/system/` | Watches the inbox |
 | `verdaccio-seed-inbox.service` | `/etc/systemd/system/` | Runs the script for files in the inbox |
-| (token) | `/etc/verdaccio-seed/npmrc` | `//REGISTRY_HOST:4873/:_authToken=...`, mode 600 |
+| (token) | `/etc/verdaccio-seed/npmrc` | `//172.31.47.239:4873/:_authToken=...`, mode 600 |
 
 Work folders are in `/var/lib/verdaccio-seed/`: `inbox/`, `done/`, `failed/`, `reports/`, `work/`.
 
@@ -39,10 +39,9 @@ sudo install -d -m 750 -g verdaccio-seed /etc/verdaccio-seed
 # in the folder holding the 6 files (check them with sha256sum first)
 sudo install -m 755 seed-registry.sh seed-plan.js /opt/verdaccio-seed/
 sudo install -m 644 verdaccio-seed-inbox.path verdaccio-seed-inbox.service /etc/systemd/system/
-sed 's#REGISTRY_HOST#172.31.47.239#' seed.env > seed.env.local
-sudo install -m 640 -g verdaccio-seed seed.env.local /etc/verdaccio-seed/seed.env
+sudo install -m 640 -g verdaccio-seed seed.env /etc/verdaccio-seed/seed.env
 sudo install -m 640 -g verdaccio-seed blocklist.txt /etc/verdaccio-seed/
-sudo install -m 600 -o verdaccio-seed -g verdaccio-seed ~/.npmrc-registry /etc/verdaccio-seed/npmrc   # admin token
+sudo install -m 600 -o verdaccio-seed -g verdaccio-seed ~/.npmrc-lab /etc/verdaccio-seed/npmrc   # admin token
 
 # checks: token works, smoke test, then the trigger
 sudo -u verdaccio-seed /opt/verdaccio/node/bin/npm whoami --registry=http://172.31.47.239:4873/ --userconfig=/etc/verdaccio-seed/npmrc --cache /var/lib/verdaccio-seed/npm-cache
@@ -82,7 +81,7 @@ Some packages ship `publishConfig.registry` set to the public registry (for exam
 ## Notes
 
 - **Tags:** only the highest version moves `latest`. Older versions get `seed-old` and prereleases `seed-pre`, so loading an old version never downgrades `latest`.
-- **Body size:** the upload is base64 (about 1.35× the tarball). Native binaries are about 9 MB, so the registry needs `max_body_size` well above 12 MB (the lab uses `100mb`).
+- **Body size:** the upload is base64 (about 1.35× the tarball). Native binaries are about 9 MB, so the registry needs `max_body_size` well above 12 MB (host 1 uses `100mb`).
 - **Platforms:** with `SEED_OS=linux` and `SEED_CPU=x64`, both `-gnu` and `-musl` natives are loaded (`npm ci` installs both), but not macOS, Windows or ARM ones.
 - **Blocklist vs registry filters:** keep `blocklist.txt` in line with any registry-side block rules, so a blocked version is refused here instead of being loaded and then hidden.
 
